@@ -1,0 +1,17 @@
+scxr_render.pro.user
+.vscode/
+*.html
+path.h
+temp/
+.qmake.stash
+*.o
+*.Debug
+*.Release
+Makefile*
+moc_*
+debug/*.*
+release/*.*
+scxr_render
+ui/*.*
+
+
