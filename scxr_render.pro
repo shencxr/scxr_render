@@ -33,3 +33,24 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 UI_DIR = ./ui
 MOC_DIR = ./tmp
 OBJECTS_DIR = ./tmp
+
+CONAN_INCLUDEPATH += "/home/monkey/.conan/data/eigen/3.3.9/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9/include" \
+    "/home/monkey/.conan/data/eigen/3.3.9/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9/include/eigen3"
+CONAN_BUILDDIRS += "/home/monkey/.conan/data/eigen/3.3.9/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9/"
+
+CONAN_INCLUDEPATH_EIGEN += "/home/monkey/.conan/data/eigen/3.3.9/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9/include" \
+    "/home/monkey/.conan/data/eigen/3.3.9/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9/include/eigen3"
+CONAN_LIBS_EIGEN +=
+CONAN_SYSTEMLIBS_EIGEN += -lm
+CONAN_FRAMEWORKS_EIGEN +=
+CONAN_FRAMEWORK_PATHS_EIGEN +=
+CONAN_LIBDIRS_EIGEN +=
+CONAN_BINDIRS_EIGEN +=
+CONAN_RESDIRS_EIGEN +=
+CONAN_BUILDDIRS_EIGEN += "/home/monkey/.conan/data/eigen/3.3.9/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9/"
+CONAN_DEFINES_EIGEN +=
+CONAN_QMAKE_CXXFLAGS_EIGEN +=
+CONAN_QMAKE_CFLAGS_EIGEN +=
+CONAN_QMAKE_LFLAGS_EIGEN +=
+CONAN_QMAKE_LFLAGS_EIGEN +=
+CONAN_EIGEN_ROOT = "/home/monkey/.conan/data/eigen/3.3.9/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9"
