@@ -16,18 +16,17 @@ class MainWindow : public QMainWindow {
 
 public:
     MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
-    void resizeEvent(QResizeEvent *event) override;
-
-    void paintEvent(QPaintEvent *event) override;
+    ~MainWindow() override;
 
 private:
+    int32_t _round(float n) { return static_cast<int32_t>(std::lround(n)); }
     void NDC_DrawLine2D(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1, QImage *img);
     Ui::MainWindow *ui;
     uint32_t canvas_w_;
     uint32_t canvas_h_;
     Eigen::Vector2i NDC2Screen2D(const Eigen::Vector2f &p);
     QImage *img_;
-    QLabel *main_;
+    QLabel *getCanvasLabel() { return dynamic_cast<QLabel *>(centralWidget()); }
+    void test_NDC_DrawLine2D();
 };
 #endif  // MAINWINDOW_H
