@@ -18,15 +18,23 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+    static bool TriangleInside(const Eigen::Vector2i &p0, const Eigen::Vector2i &p1,
+                               const Eigen::Vector2i &p2, const Eigen::Vector2i &o);
+
 private:
+    void mousePressEvent(QMouseEvent *e) override;
+
     int32_t _round(float n) { return static_cast<int32_t>(std::lround(n)); }
-    void NDC_DrawLine2D(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1, QImage *img);
+    void NDC_DrawLine2D(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1);
     Ui::MainWindow *ui;
-    uint32_t canvas_w_;
-    uint32_t canvas_h_;
     Eigen::Vector2i NDC2Screen2D(const Eigen::Vector2f &p);
     QImage *img_;
     QLabel *getCanvasLabel() { return dynamic_cast<QLabel *>(centralWidget()); }
     void test_NDC_DrawLine2D();
+    void DrawPixel(uint32_t x, uint32_t y, const QColor &color);
+    void NDC_DrawTriangle2D(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1,
+                            const Eigen::Vector2f &p2);
+    void test_NDC_DrawTriangle2D();
+    Eigen::Vector2f Screen2D2NDC(const Eigen::Vector2i &p);
 };
 #endif  // MAINWINDOW_H
