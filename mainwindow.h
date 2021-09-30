@@ -23,20 +23,25 @@ public:
 
 private:
     void mousePressEvent(QMouseEvent *e) override;
+    void resizeEvent(QResizeEvent *e) override;
 
     int32_t _round(float n) { return static_cast<int32_t>(std::lround(n)); }
     void NDC_DrawLine2D(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1);
     Ui::MainWindow *ui;
     Eigen::Vector2i NDC2Screen2D(const Eigen::Vector2f &p);
-    QImage *img_;
+    QImage *color_buffer_;
+    QImage *deep_buffer_;
     QLabel *getCanvasLabel() { return dynamic_cast<QLabel *>(centralWidget()); }
     void test_NDC_DrawLine2D();
     void DrawPixel(uint32_t x, uint32_t y, const QColor &color);
+    void DrawPixel(uint32_t x, uint32_t y, double z, const QColor &color);
     void NDC_DrawTriangle2D(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1,
                             const Eigen::Vector2f &p2);
     void test_NDC_DrawTriangle2D();
     Eigen::Vector2f Screen2D2NDC(const Eigen::Vector2i &p);
     void NDC_DrawTriangle2D_AntiAlias(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1,
                                       const Eigen::Vector2f &p2);
+
+    bool deep_test{true};
 };
 #endif  // MAINWINDOW_H

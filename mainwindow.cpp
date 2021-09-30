@@ -4,27 +4,29 @@
 #include <QTimer>
 
 #include "ui_mainwindow.h"
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
+MainWindow::MainWindow(QWidget* parent)
+    : QMainWindow(parent),
+      ui(new Ui::MainWindow),
+      color_buffer_(new QImage(this->size(), QImage::Format_RGBA8888)),
+      deep_buffer_(new QImage(color_buffer_->size(), QImage::Format_Grayscale8)) {
     ui->setupUi(this);
 
     setCentralWidget(new QLabel(this));
     auto canvas = getCanvasLabel();
-    img_ = new QImage();
-    img_->load("jieni.jpg");
-    img_->setPixelColor(0, 0, QColor(255, 0, 0));
-    img_->fill(QColor(255, 255, 255));
+    color_buffer_->fill(QColor(255, 255, 255));
+    deep_buffer_->fill(255);
     canvas->setScaledContents(true);
-    canvas->setPixmap(QPixmap::fromImage(*img_));
+    canvas->setPixmap(QPixmap::fromImage(*color_buffer_));
     //    test_NDC_DrawLine2D();
     //    test_NDC_DrawTriangle2D();
-    NDC_DrawTriangle2D({0.25, 0.25}, {0.5, 0.5}, {0.75, 0.25});
-    NDC_DrawTriangle2D_AntiAlias({-0.25, 0.25}, {-0.5, 0.5}, {-0.75, 0.25});
-    getCanvasLabel()->setPixmap(QPixmap::fromImage(*img_));
+    //    NDC_DrawTriangle2D({0.25, 0.25}, {0.5, 0.5}, {0.75, 0.25});
+    //    NDC_DrawTriangle2D_AntiAlias({-0.25, 0.25}, {-0.5, 0.5}, {-0.75, 0.25});
+    getCanvasLabel()->setPixmap(QPixmap::fromImage(*color_buffer_));
 }
 
 void MainWindow::test_NDC_DrawLine2D() {
     QTimer* test = new QTimer(this);
-    img_->fill(QColor(255, 255, 255));
+    color_buffer_->fill(QColor(255, 255, 255));
     connect(test, &QTimer::timeout, this, [=]() {
         NDC_DrawLine2D(Eigen::Vector2f::Zero(), Eigen::Vector2f::UnitX());
         NDC_DrawLine2D(Eigen::Vector2f::Zero(), Eigen::Vector2f::UnitY());
@@ -37,20 +39,20 @@ void MainWindow::test_NDC_DrawLine2D() {
         const Eigen::Vector2f p0(x0, y0);
         const Eigen::Vector2f p1(x1, y1);
         NDC_DrawLine2D(p0, p1);
-        getCanvasLabel()->setPixmap(QPixmap::fromImage(*img_));
+        getCanvasLabel()->setPixmap(QPixmap::fromImage(*color_buffer_));
     });
     test->start(1);
 }
 
 void MainWindow::test_NDC_DrawTriangle2D() {
     QTimer* test = new QTimer(this);
-    img_->fill(QColor(255, 255, 255));
+    color_buffer_->fill(QColor(255, 255, 255));
     NDC_DrawLine2D(Eigen::Vector2f::Zero(), Eigen::Vector2f::UnitX());
     NDC_DrawLine2D(Eigen::Vector2f::Zero(), Eigen::Vector2f::UnitY());
     NDC_DrawLine2D(Eigen::Vector2f::Zero(), -Eigen::Vector2f::UnitX());
     NDC_DrawLine2D(Eigen::Vector2f::Zero(), -Eigen::Vector2f::UnitY());
     connect(test, &QTimer::timeout, this, [=]() {
-        img_->fill(QColor(255, 255, 255));
+        color_buffer_->fill(QColor(255, 255, 255));
         const float x0 = (std::pow(-1, rand() % 2)) * float(rand()) / RAND_MAX;
         const float y0 = (std::pow(-1, rand() % 2)) * float(rand()) / RAND_MAX;
         const float x1 = (std::pow(-1, rand() % 2)) * float(rand()) / RAND_MAX;
@@ -61,7 +63,7 @@ void MainWindow::test_NDC_DrawTriangle2D() {
         const Eigen::Vector2f p1(x1, y1);
         const Eigen::Vector2f p2(x2, y2);
         NDC_DrawTriangle2D(p0, p1, p2);
-        getCanvasLabel()->setPixmap(QPixmap::fromImage(*img_));
+        getCanvasLabel()->setPixmap(QPixmap::fromImage(*color_buffer_));
     });
     test->start(1000);
 }
@@ -69,8 +71,8 @@ void MainWindow::test_NDC_DrawTriangle2D() {
 //(0,0) at left down corner
 Eigen::Vector2i MainWindow::NDC2Screen2D(const Eigen::Vector2f& p) {
     Eigen::Matrix3f trans = Eigen::Matrix3f::Identity();
-    trans(0, 0) = trans(0, 2) = 0.5f * img_->width();
-    trans(1, 1) = trans(1, 2) = 0.5f * img_->height();
+    trans(0, 0) = trans(0, 2) = 0.5f * color_buffer_->width();
+    trans(1, 1) = trans(1, 2) = 0.5f * color_buffer_->height();
     const Eigen::Vector3f pos(p.x(), p.y(), 1.0f);
     return (trans * pos).block<2, 1>(0, 0).cast<int32_t>();
 }
@@ -78,8 +80,8 @@ Eigen::Vector2i MainWindow::NDC2Screen2D(const Eigen::Vector2f& p) {
 //(0,0) at left down corner
 Eigen::Vector2f MainWindow::Screen2D2NDC(const Eigen::Vector2i& p) {
     Eigen::Matrix3f trans = Eigen::Matrix3f::Identity();
-    trans(0, 0) = trans(0, 2) = 0.5f * img_->width();
-    trans(1, 1) = trans(1, 2) = 0.5f * img_->height();
+    trans(0, 0) = trans(0, 2) = 0.5f * color_buffer_->width();
+    trans(1, 1) = trans(1, 2) = 0.5f * color_buffer_->height();
     const Eigen::Vector3f pos(p.x(), p.y(), 1.0f);
     return (trans.inverse() * pos).block<2, 1>(0, 0);
 }
@@ -137,8 +139,8 @@ void MainWindow::NDC_DrawTriangle2D_AntiAlias(const Eigen::Vector2f& p0, const E
     const Eigen::Vector2i min = t_p.rowwise().minCoeff();
     const Eigen::Vector2i max = t_p.rowwise().maxCoeff();
 
-    const int32_t sub_y_num = 2;
-    const int32_t sub_x_num = 2;
+    const int32_t sub_y_num = 8;
+    const int32_t sub_x_num = 8;
     const float step_y = (1.0f / (sub_y_num + 1));
     const float step_x = (1.0f / (sub_x_num + 1));
 
@@ -174,54 +176,71 @@ bool MainWindow::TriangleInside(const Eigen::Vector2d& p0, const Eigen::Vector2d
     const Eigen::Vector3d t_p2(p2.x(), p2.y(), 0);
     const Eigen::Vector3d t_o(o.x(), o.y(), 0);
 
-    Eigen::Vector3d v0 = (t_p1 - t_p0).cross(t_o - t_p0);
-    v0 = v0.normalized();
-    //    if (v0 == Eigen::Vector3d::Zero()) {
-    //        return false;
-    //    } else {
-    //        v0 = v0.normalized();
-    //    }
-    Eigen::Vector3d v1 = (t_p2 - t_p1).cross(t_o - t_p1);
-    v1 = v1.normalized();
-    //    if (v1 == Eigen::Vector3d::Zero()) {
-    //        return false;
-    //    } else {
-    //        v1 = v1.normalized();
-    //    }
-    Eigen::Vector3d v2 = (t_p0 - t_p2).cross(t_o - t_p2);
-    v2 = v2.normalized();
-    //    if (v2 == Eigen::Vector3d::Zero()) {
-    //        return false;
-    //    } else {
-    //        v2 = v2.normalized();
-    //    }
-
+    Eigen::Vector3d v0 = (t_p1 - t_p0).cross(t_o - t_p0).normalized();
+    //    v0 = v0.normalized();
+    Eigen::Vector3d v1 = (t_p2 - t_p1).cross(t_o - t_p1).normalized();
+    //    v1 = v1.normalized();
+    Eigen::Vector3d v2 = (t_p0 - t_p2).cross(t_o - t_p2).normalized();
+    //    v2 = v2.normalized();
     return v0 == v1 && v1 == v2 && v2 == v0;
 }
 
 void MainWindow::mousePressEvent(QMouseEvent* e) {
-    static uint8_t num = 0;
-    static Eigen::Matrix2Xf points(2, 3);
-    auto size = getCanvasLabel()->size();
-    qDebug() << num << e->pos() << size;
-    points.col(num) << (float(e->x()) / size.width() - 0.5f) * 2.0f,
-        (0.5f - float(e->y()) / size.height()) * 2.0f;
-    ++num;
-    if (num == 3) {
-        NDC_DrawTriangle2D(points.col(0), points.col(1), points.col(2));
-        getCanvasLabel()->setPixmap(QPixmap::fromImage(*img_));
-        num = 0;
+    if (e->button() == Qt::LeftButton) {
+        static uint8_t num = 0;
+        static Eigen::Matrix2Xf points(2, 3);
+        auto size = getCanvasLabel()->size();
+        qDebug() << num << e->pos() << size;
+        points.col(num) << (float(e->x()) / size.width() - 0.5f) * 2.0f,
+            (0.5f - float(e->y()) / size.height()) * 2.0f;
+        ++num;
+        if (num == 3) {
+            NDC_DrawTriangle2D(points.col(0), points.col(1), points.col(2));
+            getCanvasLabel()->setPixmap(QPixmap::fromImage(*color_buffer_));
+            num = 0;
+        }
+    } else if (e->button() == Qt::RightButton) {
+        static uint8_t num = 0;
+        static Eigen::Matrix2Xf points(2, 3);
+        auto size = getCanvasLabel()->size();
+        qDebug() << num << e->pos() << size;
+        points.col(num) << (float(e->x()) / size.width() - 0.5f) * 2.0f,
+            (0.5f - float(e->y()) / size.height()) * 2.0f;
+        ++num;
+        if (num == 3) {
+            NDC_DrawTriangle2D_AntiAlias(points.col(0), points.col(1), points.col(2));
+            getCanvasLabel()->setPixmap(QPixmap::fromImage(*color_buffer_));
+            num = 0;
+        }
     }
+}
+
+void MainWindow::resizeEvent(QResizeEvent* e) {
+    const QSize new_size = getCanvasLabel()->size();
+    color_buffer_->scaled(new_size);
+    deep_buffer_->scaled(new_size);
 }
 
 //(0,0) at left down corner
 void MainWindow::DrawPixel(uint32_t x, uint32_t y, const QColor& color) {
-    x = x % img_->width();
-    y = y % img_->height();
-    img_->setPixelColor(x, img_->height() - (y)-1, color);
+    x = x % color_buffer_->width();
+    y = y % color_buffer_->height();
+    color_buffer_->setPixelColor(x, color_buffer_->height() - (y)-1, color);
+}
+
+void MainWindow::DrawPixel(uint32_t x, uint32_t y, double z, const QColor& color) {
+    if (x < color_buffer_->width() && y < color_buffer_->height()) {
+        if (deep_test) {
+            if ((static_cast<double>(qGray(deep_buffer_->pixel(x, y))) / 255 > z)) {
+                color_buffer_->setPixelColor(x, color_buffer_->height() - (y)-1, color);
+            }
+        } else {
+            color_buffer_->setPixelColor(x, color_buffer_->height() - (y)-1, color);
+        }
+    }
 }
 
 MainWindow::~MainWindow() {
-    delete img_;
+    delete color_buffer_;
     delete ui;
 }
