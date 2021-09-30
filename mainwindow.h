@@ -18,8 +18,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
-    static bool TriangleInside(const Eigen::Vector2i &p0, const Eigen::Vector2i &p1,
-                               const Eigen::Vector2i &p2, const Eigen::Vector2i &o);
+    static bool TriangleInside(const Eigen::Vector2d &p0, const Eigen::Vector2d &p1,
+                               const Eigen::Vector2d &p2, const Eigen::Vector2d &o);
 
 private:
     void mousePressEvent(QMouseEvent *e) override;
@@ -36,5 +36,7 @@ private:
                             const Eigen::Vector2f &p2);
     void test_NDC_DrawTriangle2D();
     Eigen::Vector2f Screen2D2NDC(const Eigen::Vector2i &p);
+    void NDC_DrawTriangle2D_AntiAlias(const Eigen::Vector2f &p0, const Eigen::Vector2f &p1,
+                                      const Eigen::Vector2f &p2);
 };
 #endif  // MAINWINDOW_H

@@ -12,10 +12,14 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     img_ = new QImage();
     img_->load("jieni.jpg");
     img_->setPixelColor(0, 0, QColor(255, 0, 0));
+    img_->fill(QColor(255, 255, 255));
     canvas->setScaledContents(true);
     canvas->setPixmap(QPixmap::fromImage(*img_));
     //    test_NDC_DrawLine2D();
     //    test_NDC_DrawTriangle2D();
+    NDC_DrawTriangle2D({0.25, 0.25}, {0.5, 0.5}, {0.75, 0.25});
+    NDC_DrawTriangle2D_AntiAlias({-0.25, 0.25}, {-0.5, 0.5}, {-0.75, 0.25});
+    getCanvasLabel()->setPixmap(QPixmap::fromImage(*img_));
 }
 
 void MainWindow::test_NDC_DrawLine2D() {
@@ -59,7 +63,7 @@ void MainWindow::test_NDC_DrawTriangle2D() {
         NDC_DrawTriangle2D(p0, p1, p2);
         getCanvasLabel()->setPixmap(QPixmap::fromImage(*img_));
     });
-    test->start(1);
+    test->start(1000);
 }
 
 //(0,0) at left down corner
@@ -114,38 +118,83 @@ void MainWindow::NDC_DrawTriangle2D(const Eigen::Vector2f& p0, const Eigen::Vect
 
     for (int32_t y = min.y(); y <= max.y(); ++y) {
         for (int32_t x = min.x(); x <= max.x(); ++x) {
-            if (TriangleInside(t_p.col(0), t_p.col(1), t_p.col(2), Eigen::Vector2i(x, y))) {
+            if (TriangleInside(t_p.col(0).cast<double>(), t_p.col(1).cast<double>(),
+                               t_p.col(2).cast<double>(), Eigen::Vector2d(x, y))) {
                 DrawPixel(x, y, QColor(0, 255, 0));
             }
         }
     }
+    DrawPixel(t_p.col(0).x(), t_p.col(0).y(), Qt::black);
+    DrawPixel(t_p.col(1).x(), t_p.col(1).y(), Qt::black);
+    DrawPixel(t_p.col(2).x(), t_p.col(2).y(), Qt::black);
 }
 
-bool MainWindow::TriangleInside(const Eigen::Vector2i& p0, const Eigen::Vector2i& p1,
-                                const Eigen::Vector2i& p2, const Eigen::Vector2i& o) {
-    const Eigen::Vector3i t_p0(p0.x(), p0.y(), 0);
-    const Eigen::Vector3i t_p1(p1.x(), p1.y(), 0);
-    const Eigen::Vector3i t_p2(p2.x(), p2.y(), 0);
-    const Eigen::Vector3i t_o(o.x(), o.y(), 0);
+void MainWindow::NDC_DrawTriangle2D_AntiAlias(const Eigen::Vector2f& p0, const Eigen::Vector2f& p1,
+                                              const Eigen::Vector2f& p2) {
+    Eigen::Matrix2Xi t_p(2, 3);
+    t_p << NDC2Screen2D(p0), NDC2Screen2D(p1), NDC2Screen2D(p2);
 
-    Eigen::Vector3d v0 = (t_p1 - t_p0).cross(t_o - t_p0).cast<double>();
-    if (v0 == Eigen::Vector3d::Zero()) {
-        return false;
-    } else {
-        v0 = v0.normalized();
+    const Eigen::Vector2i min = t_p.rowwise().minCoeff();
+    const Eigen::Vector2i max = t_p.rowwise().maxCoeff();
+
+    const int32_t sub_y_num = 2;
+    const int32_t sub_x_num = 2;
+    const float step_y = (1.0f / (sub_y_num + 1));
+    const float step_x = (1.0f / (sub_x_num + 1));
+
+    for (int32_t y = min.y(); y <= max.y(); ++y) {
+        for (int32_t x = min.x(); x <= max.x(); ++x) {
+            float inside_num = 0;
+            for (int32_t sub_y = 1; sub_y <= sub_y_num; ++sub_y) {
+                for (int32_t sub_x = 1; sub_x <= sub_x_num; ++sub_x) {
+                    Eigen::Vector2d target(x + sub_x * step_x, y + sub_y * step_y);
+                    if (TriangleInside(t_p.col(0).cast<double>(), t_p.col(1).cast<double>(),
+                                       t_p.col(2).cast<double>(), target)) {
+                        inside_num += 1;
+                    }
+                }
+            }
+            if (std::lrint(inside_num) != 0) {
+                const float rate = inside_num / (sub_y_num * sub_x_num);
+                QColor c;
+                c.setRgbF(1.0 - rate, 1.0, 1.0 - rate);
+                DrawPixel(x, y, c);
+            }
+        }
     }
-    Eigen::Vector3d v1 = (t_p2 - t_p1).cross(t_o - t_p1).cast<double>();
-    if (v1 == Eigen::Vector3d::Zero()) {
-        return false;
-    } else {
-        v1 = v1.normalized();
-    }
-    Eigen::Vector3d v2 = (t_p0 - t_p2).cross(t_o - t_p2).cast<double>();
-    if (v2 == Eigen::Vector3d::Zero()) {
-        return false;
-    } else {
-        v2 = v2.normalized();
-    }
+    DrawPixel(t_p.col(0).x(), t_p.col(0).y(), Qt::black);
+    DrawPixel(t_p.col(1).x(), t_p.col(1).y(), Qt::black);
+    DrawPixel(t_p.col(2).x(), t_p.col(2).y(), Qt::black);
+}
+
+bool MainWindow::TriangleInside(const Eigen::Vector2d& p0, const Eigen::Vector2d& p1,
+                                const Eigen::Vector2d& p2, const Eigen::Vector2d& o) {
+    const Eigen::Vector3d t_p0(p0.x(), p0.y(), 0);
+    const Eigen::Vector3d t_p1(p1.x(), p1.y(), 0);
+    const Eigen::Vector3d t_p2(p2.x(), p2.y(), 0);
+    const Eigen::Vector3d t_o(o.x(), o.y(), 0);
+
+    Eigen::Vector3d v0 = (t_p1 - t_p0).cross(t_o - t_p0);
+    v0 = v0.normalized();
+    //    if (v0 == Eigen::Vector3d::Zero()) {
+    //        return false;
+    //    } else {
+    //        v0 = v0.normalized();
+    //    }
+    Eigen::Vector3d v1 = (t_p2 - t_p1).cross(t_o - t_p1);
+    v1 = v1.normalized();
+    //    if (v1 == Eigen::Vector3d::Zero()) {
+    //        return false;
+    //    } else {
+    //        v1 = v1.normalized();
+    //    }
+    Eigen::Vector3d v2 = (t_p0 - t_p2).cross(t_o - t_p2);
+    v2 = v2.normalized();
+    //    if (v2 == Eigen::Vector3d::Zero()) {
+    //        return false;
+    //    } else {
+    //        v2 = v2.normalized();
+    //    }
 
     return v0 == v1 && v1 == v2 && v2 == v0;
 }
